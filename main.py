@@ -10,6 +10,17 @@ NODES = {
     "osmt-node3": {"ip": "192.168.5.13"},
 }
 
+@app.route("/")
+def index():
+    return """
+    <h1>OpenShift Power Controller</h1>
+    <p>This is the backend API service.</p>
+    <ul>
+        <li><a href="/status">Check Cluster & AMT Status</a></li>
+        <li><code>POST /power/&lt;node&gt;/&lt;on|off|reset&gt;</code> to control node power</li>
+    </ul>
+    """
+
 @app.route("/status")
 def status():
     return jsonify({
