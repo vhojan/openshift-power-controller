@@ -1,7 +1,7 @@
 
 const chartHistory = {};
 
-function createMiniChart(canvasId, labels, data, color) {
+function createMiniChart(canvasId, labels, data, color, unit) {
     new Chart(document.getElementById(canvasId), {
         type: 'line',
         data: {
@@ -9,7 +9,6 @@ function createMiniChart(canvasId, labels, data, color) {
             datasets: [{
                 data: data,
                 borderColor: color,
-                backgroundColor: 'transparent',
                 fill: false,
                 tension: 0.2,
                 pointRadius: 0
@@ -20,11 +19,28 @@ function createMiniChart(canvasId, labels, data, color) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                tooltip: { enabled: true }
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y.toFixed(1)} ${unit}`;
+                        }
+                    }
+                }
             },
             scales: {
                 x: { display: false },
-                y: { display: false }
+                y: {
+                    display: true,
+                    ticks: {
+                        callback: value => `${value.toFixed(0)} ${unit}`,
+                        font: { size: 8 }
+                    },
+                    title: {
+                        display: true,
+                        text: unit,
+                        font: { size: 10 }
+                    }
+                }
             }
         }
     });
@@ -51,7 +67,7 @@ async function fetchStatus() {
         chartHistory[name].timestamps.push(now);
         chartHistory[name].cpu.push(node.cpu);
         chartHistory[name].mem.push(node.memory / (1024 * 1024));
-        chartHistory[name].power.push(Math.random() * 50 + 50);  // Placeholder
+        chartHistory[name].power.push(Math.random() * 50 + 50);  // placeholder watts
 
         if (chartHistory[name].cpu.length > 20) {
             ['timestamps', 'cpu', 'mem', 'power'].forEach(key => chartHistory[name][key].shift());
@@ -77,12 +93,12 @@ async function fetchStatus() {
                 <small>Boot: ${lastBoot}</small><br>
                 <small>State: ${powerState}</small>
             </td>
-            <td>
-                <canvas id="${cpuCanvasId}" width="100" height="40"></canvas>
-            </td>
-            <td>
-                <canvas id="${memCanvasId}" width="100" height="40"></canvas>
-                <div style="font-size: 10px;"><canvas id="${pwrCanvasId}" width="100" height="20"></canvas></div>
+            <td colspan="3">
+                <div style="display: flex; gap: 10px; flex-direction: column;">
+                    <div><b>CPU</b><br><canvas id="${cpuCanvasId}" width="300" height="40"></canvas></div>
+                    <div><b>Memory</b><br><canvas id="${memCanvasId}" width="300" height="40"></canvas></div>
+                    <div><b>Power</b><br><canvas id="${pwrCanvasId}" width="300" height="40"></canvas></div>
+                </div>
             </td>
             <td>
                 <button onclick="powerAction('${name}', 'on')">On</button>
@@ -92,14 +108,14 @@ async function fetchStatus() {
             </td>`;
         table.appendChild(row);
 
-        const chartColor = powerState === "on" ? 'orange' : 'gray';
-        const memColor = powerState === "on" ? 'steelblue' : 'lightgray';
+        const cpuColor = powerState === "on" ? 'orange' : 'gray';
+        const memColor = powerState === "on" ? 'steelblue' : 'gray';
         const pwrColor = powerState === "on" ? 'green' : 'red';
 
         setTimeout(() => {
-            createMiniChart(cpuCanvasId, chartHistory[name].timestamps, chartHistory[name].cpu, chartColor);
-            createMiniChart(memCanvasId, chartHistory[name].timestamps, chartHistory[name].mem, memColor);
-            createMiniChart(pwrCanvasId, chartHistory[name].timestamps, chartHistory[name].power, pwrColor);
+            createMiniChart(cpuCanvasId, chartHistory[name].timestamps, chartHistory[name].cpu, cpuColor, 'cores');
+            createMiniChart(memCanvasId, chartHistory[name].timestamps, chartHistory[name].mem, memColor, 'MB');
+            createMiniChart(pwrCanvasId, chartHistory[name].timestamps, chartHistory[name].power, pwrColor, 'W');
         }, 100);
     });
 }
