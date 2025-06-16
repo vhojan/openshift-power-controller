@@ -1,62 +1,32 @@
-import time, requests
+import os
+from kubernetes import client, config
+from prometheus_api_client import PrometheusConnect
+import datetime
 
-PROMETHEUS_URL = "https://prometheus-k8s-openshift-monitoring.apps.osmt.johan.ml"
-TOKEN_PATH = "/etc/power-controller/prometheus-token"
+def get_cluster_load():
+    try:
+        config.load_kube_config(os.getenv("KUBECONFIG", "/kube/kubeconfig.yaml"))
+        v1 = client.CoreV1Api()
+        prom = PrometheusConnect(url="https://prometheus-k8s-openshift-monitoring.apps.osmt.johan.ml", disable_ssl=True)
+        with open("/etc/power-controller/prometheus-token") as f:
+            prom.set_bearer_token(f.read().strip())
+        end = datetime.datetime.now()
+        start = end - datetime.timedelta(minutes=5)
 
-def get_bearer_token():
-    with open(TOKEN_PATH) as f:
-        return f.read().strip()
+        result = {}
+        for node in v1.list_node().items:
+            name = node.metadata.name
+            cpu_query = f"instance:node_cpu:rate:sum{{instance='{name}'}}"
+            mem_query = f"node_memory_MemTotal_bytes{{instance='{name}'}} - node_memory_MemAvailable_bytes{{instance='{name}'}}"
 
-def query_range(query, step="60s", duration_s=3600):
-    now = int(time.time())
-    start = now - duration_s
-    headers = {"Authorization": f"Bearer {get_bearer_token()}"}
-    resp = requests.get(
-        f"{PROMETHEUS_URL}/api/v1/query_range",
-        params={"query": query, "start": start, "end": now, "step": step},
-        headers=headers,
-        verify=False
-    )
-    resp.raise_for_status()
-    return resp.json()
+            cpu = prom.get_current_metric_value(cpu_query)
+            mem = prom.get_current_metric_value(mem_query)
 
-def _parse_ts(result):
-    out = {}
-    for item in result.get("data", {}).get("result", []):
-        node = item["metric"].get("node")
-        if not node:
-            continue
-        # convert all samples to float
-        values = [float(v[1]) for v in item["values"]]
-        out[node] = values
-    return out
+            result[name] = {
+                "cpu": float(cpu[0]['value'][1]) if cpu else None,
+                "memory": float(mem[0]['value'][1]) if mem else None
+            }
 
-def get_node_timeseries():
-    cpu_q   = 'sum(rate(container_cpu_usage_seconds_total{job="kubelet",image!=""}[5m])) by (node)'
-    mem_q   = 'sum(container_memory_usage_bytes{job="kubelet",image!=""}) by (node)'
-    power_q = 'sum(node_power_usage_watts) by (node)'  # adjust to your metric
-
-    def parse(rs):
-      out = {}
-      for item in rs:
-        node = item["metric"].get("node")
-        if not node: 
-          continue
-        # convert each sample to float
-        out[node] = [float(v[1]) for v in item["values"]]
-      return out
-
-    cpu_data   = query_range(cpu_q)
-    mem_data   = query_range(mem_q)
-    power_data = query_range(power_q)
-
-    return {
-      "cpu":    parse(cpu_data),
-      "memory": parse(mem_data),
-      "power":  parse(power_data),
-    }
-    return {
-        "cpu":   _parse_ts(cpu_data),
-        "memory": _parse_ts(mem_data),
-        "power": _parse_ts(power_data),
-    }
+        return result
+    except Exception as e:
+        return {"error": str(e)}
