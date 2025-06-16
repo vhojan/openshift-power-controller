@@ -1,36 +1,25 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>OpenShift Power Controller</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/controller.js"></script>
     <style>
+        .chart-container { width: 200px; height: 100px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border: 1px solid #ccc; text-align: center; }
-        canvas { max-width: 250px; }
-        button { padding: 5px 10px; margin: 2px; }
-        #log { margin-top: 20px; font-family: monospace; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; }
+        td, th { padding: 8px; border: 1px solid #ccc; text-align: center; }
+        .status-log { height: 120px; overflow-y: scroll; border: 1px solid #ccc; padding: 4px; background: #f9f9f9; }
     </style>
 </head>
 <body>
     <h1>OpenShift Power Controller</h1>
     <table id="nodeTable">
         <thead>
-            <tr>
-                <th>Node</th>
-                <th>AMT Reachable</th>
-                <th>CPU Usage</th>
-                <th>Memory Usage</th>
-                <th>Power Controls</th>
-            </tr>
+            <tr><th>Node</th><th>CPU Usage</th><th>Memory Usage</th><th>Power</th><th>Graph</th></tr>
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
-
-    <h2>Status Log</h2>
-    <div id="log">Log messages will appear here...</div>
-
-    <script src="/static/app.js"></script>
+    <h3>Status Log</h3>
+    <div class="status-log" id="statusLog">Log messages will appear here...</div>
 </body>
 </html>
