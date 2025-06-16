@@ -18,20 +18,9 @@ def index():
 
 @app.route("/status")
 def status():
-    # 1) instant snapshot (if you still need it)
-    cluster = get_cluster_load()
-
-    # 2) full-hour timeseries for graphs
-    ts = get_node_timeseries()
-
-    # 3) AMT reachability
-    amt = { node: {"reachable": check_amt(info["ip"])} 
-            for node, info in NODES.items() }
-
     return jsonify({
-      "amt":       amt,
-      "cluster":   cluster,
-      "timeseries": ts
+        "cluster_load": get_cluster_load(),
+        "amt": {node: check_amt(data["ip"]) for node, data in NODES.items()}
     })
 
 @app.route("/power/<node>/<action>", methods=["POST"])
