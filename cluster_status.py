@@ -1,48 +1,44 @@
 import requests
+import time
 
 PROMETHEUS_URL = "https://prometheus-k8s-openshift-monitoring.apps.osmt.johan.ml"
-TOKEN_PATH = "/etc/power-controller/prometheus-token"  # Ensure this file is mounted in the container
+TOKEN_PATH = "/etc/power-controller/prometheus-token"
 
 def get_bearer_token():
     with open(TOKEN_PATH, "r") as f:
         return f.read().strip()
 
-def query_prometheus(query):
-    headers = {
-        "Authorization": f"Bearer {get_bearer_token()}"
-    }
-    response = requests.get(f"{PROMETHEUS_URL}/api/v1/query", params={"query": query}, headers=headers, verify=False)
+def query_range(query, duration='1h', step='60s'):
+    now = int(time.time())
+    start = now - 3600  # last hour
+    headers = {"Authorization": f"Bearer {get_bearer_token()}"}
+    response = requests.get(
+        f"{PROMETHEUS_URL}/api/v1/query_range",
+        params={"query": query, "start": start, "end": now, "step": step},
+        headers=headers,
+        verify=False
+    )
     return response.json()
 
-def get_cluster_load():
-    cpu_query = 'sum(rate(container_cpu_usage_seconds_total{job="kubelet", image!=""}[5m])) by (node)'
-    mem_query = 'sum(container_memory_usage_bytes{job="kubelet", image!=""}) by (node)'
+def get_node_timeseries():
+    cpu_query = 'rate(container_cpu_usage_seconds_total{job="kubelet", image!=""}[5m])'
+    mem_query = 'container_memory_usage_bytes{job="kubelet", image!=""}'
+    power_query = 'node_power_usage_watts'  # Simulated or available?
 
-    cpu_data = query_prometheus(cpu_query)
-    mem_data = query_prometheus(mem_query)
+    cpu_data = query_range(f'sum({cpu_query}) by (node)')
+    mem_data = query_range(f'sum({mem_query}) by (node)')
+    power_data = query_range(f'sum({power_query}) by (node)')
 
-    result = {}
-    for item in cpu_data.get("data", {}).get("result", []):
-        node = item["metric"]["node"]
-        result[node] = {"cpu": item["value"][1]}
+    def parse(result):
+        out = {}
+        for item in result.get("data", {}).get("result", []):
+            node = item["metric"]["node"]
+            values = [float(v[1]) for v in item["values"]]
+            out[node] = values
+        return out
 
-    for item in mem_data.get("data", {}).get("result", []):
-        node = item["metric"]["node"]
-        if node in result:
-            result[node]["memory"] = item["value"][1]
-
-    return result
-
-def get_cluster_status():
-    raw = get_cluster_load()
-    cleaned = {}
-
-    for node, metrics in raw.items():
-        try:
-            cpu = round(float(metrics["cpu"]), 2)
-            mem_gib = round(float(metrics["memory"]) / (1024 ** 3), 2)
-            cleaned[node] = {"cpu": cpu, "memory": mem_gib}
-        except (KeyError, ValueError):
-            continue
-
-    return cleaned
+    return {
+        "cpu": parse(cpu_data),
+        "memory": parse(mem_data),
+        "power": parse(power_data)
+    }
