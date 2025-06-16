@@ -60,3 +60,8 @@ button {
 body.dark #log {
     background: #1e1e1e;
 }
+
+canvas {
+    width: 100px !important;
+    height: 40px !important;
+}
