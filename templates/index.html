@@ -1,13 +1,36 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>OpenShift Power Controller</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/static/app.js"></script>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border: 1px solid #ccc; text-align: center; }
+        canvas { max-width: 250px; }
+        button { padding: 5px 10px; margin: 2px; }
+        #log { margin-top: 20px; font-family: monospace; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; }
+    </style>
 </head>
 <body>
     <h1>OpenShift Power Controller</h1>
-    <div id="logs"></div>
-    <div id="nodes"></div>
+    <table id="nodeTable">
+        <thead>
+            <tr>
+                <th>Node</th>
+                <th>AMT Reachable</th>
+                <th>CPU Usage</th>
+                <th>Memory Usage</th>
+                <th>Power Controls</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <h2>Status Log</h2>
+    <div id="log">Log messages will appear here...</div>
+
+    <script src="/static/app.js"></script>
 </body>
 </html>
