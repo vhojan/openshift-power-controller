@@ -3,7 +3,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Simulated node list
+# Static list of nodes
 NODES = ['osmt-node1', 'osmt-node2', 'osmt-node3']
 
 # In-memory event log
@@ -12,23 +12,18 @@ event_log = []
 @app.route('/')
 def index():
     usage_data = {
-        node: {
-            'cpu': round(1.0 + i * 0.5, 2),
-            'memory': round(16 + i * 10, 2)
-        }
-        for i, node in enumerate(['osmt-node1', 'osmt-node2', 'osmt-node3'])
+        'osmt-node1': {'cpu': 2.57, 'memory': 15.98},
+        'osmt-node2': {'cpu': 2.24, 'memory': 38.53},
+        'osmt-node3': {'cpu': 1.29, 'memory': 27.87}
     }
-    return render_template('index.html', usage=usage_data, nodes=usage_data.keys(), events=event_log)
+    return render_template('index.html', usage=usage_data, nodes=NODES, events=event_log)
 
 @app.route('/power', methods=['POST'])
 def power():
     node = request.form.get('node')
     action = request.form.get('action')
 
-    # Simulated result
-    result = f"{action.upper()} sent to {node}"
-
-    # Append to event log
+    result = f"{action.upper()} command sent to {node}"
     event_log.append({
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'node': node,
@@ -36,5 +31,4 @@ def power():
         'result': result
     })
 
-    print(result)
     return redirect('/')
