@@ -1,6 +1,4 @@
 def check_amt(ip):
-    # Replace this with actual logic if needed
-   def check_amt(ip):
     return {
         "ip": ip,
         "reachable": True,
@@ -10,7 +8,6 @@ def check_amt(ip):
     }
 
 def power_control(ip, action):
-    # Replace this with actual logic if needed
     return {"ip": ip, "action": action, "success": True}
 
 def get_amt_status(amt_ip):
