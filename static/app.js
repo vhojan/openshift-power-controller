@@ -1,4 +1,3 @@
-
 async function fetchStatus() {
     const res = await fetch('/status');
     const data = await res.json();
@@ -6,9 +5,10 @@ async function fetchStatus() {
     table.innerHTML = '';
     data.forEach(node => {
         const row = document.createElement('tr');
+        const amtClass = node.amt_status === 'reachable' ? 'status-reachable' : 'status-unreachable';
         row.innerHTML = `
             <td>${node.name}</td>
-            <td>${node.amt_status}</td>
+            <td class="${amtClass}">${node.amt_status}</td>
             <td>${node.cpu.toFixed(2)}</td>
             <td>${(node.memory / (1024 * 1024)).toFixed(2)} MB</td>
             <td>
@@ -23,7 +23,10 @@ async function fetchStatus() {
 async function powerAction(node, action) {
     const res = await fetch(`/power/${node}/${action}`, { method: 'POST' });
     const result = await res.json();
-    document.getElementById('log').innerText = `${node}: ${action} - ${JSON.stringify(result)}`;
+    const log = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    log.innerHTML += `[${time}] ${node}: ${action} → ${JSON.stringify(result)}<br>`;
+    log.scrollTop = log.scrollHeight;
     fetchStatus();
 }
 
