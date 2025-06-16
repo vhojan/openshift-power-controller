@@ -11,15 +11,14 @@ event_log = []
 
 @app.route('/')
 def index():
-    # Dummy data, replace with actual Prometheus or AMT values
     usage_data = {
         node: {
             'cpu': round(1.0 + i * 0.5, 2),
             'memory': round(16 + i * 10, 2)
         }
-        for i, node in enumerate(NODES)
+        for i, node in enumerate(['osmt-node1', 'osmt-node2', 'osmt-node3'])
     }
-    return render_template('index.html', usage=usage_data, nodes=NODES, events=event_log)
+    return render_template('index.html', usage=usage_data, nodes=usage_data.keys(), events=event_log)
 
 @app.route('/power', methods=['POST'])
 def power():
