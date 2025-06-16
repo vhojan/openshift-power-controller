@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from amt_controller import power_control, check_amt
 from cluster_status import get_cluster_load
 
@@ -12,14 +12,7 @@ NODES = {
 
 @app.route("/")
 def index():
-    return """
-    <h1>OpenShift Power Controller</h1>
-    <p>This is the backend API service.</p>
-    <ul>
-        <li><a href="/status">Check Cluster & AMT Status</a></li>
-        <li><code>POST /power/&lt;node&gt;/&lt;on|off|reset&gt;</code> to control node power</li>
-    </ul>
-    """
+    return render_template("index.html")
 
 @app.route("/status")
 def status():
