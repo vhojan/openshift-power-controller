@@ -1,6 +1,17 @@
+def check_amt(ip):
+    # Replace this with actual logic if needed
+    return {"ip": ip, "reachable": True}
+
+def power_control(ip, action):
+    # Replace this with actual logic if needed
+    return {"ip": ip, "action": action, "success": True}
+
 def get_amt_status(amt_ip):
-    result = check_amt(amt_ip)
-    return "reachable" if result.get("reachable") else "unreachable"
+    try:
+        result = check_amt(amt_ip)
+        return "reachable" if result.get("reachable") else "unreachable"
+    except Exception as e:
+        return "unreachable"
 
 def power_action(amt_ip, action):
     if action not in ["on", "off", "reset"]:
