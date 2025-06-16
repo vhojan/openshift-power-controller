@@ -1,4 +1,5 @@
-const chartHistory = {};  // stores history for each node
+
+const chartHistory = {};
 
 function createMiniChart(canvasId, labels, data, color) {
     new Chart(document.getElementById(canvasId), {
@@ -8,6 +9,7 @@ function createMiniChart(canvasId, labels, data, color) {
             datasets: [{
                 data: data,
                 borderColor: color,
+                backgroundColor: 'transparent',
                 fill: false,
                 tension: 0.2,
                 pointRadius: 0
@@ -16,7 +18,10 @@ function createMiniChart(canvasId, labels, data, color) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            },
             scales: {
                 x: { display: false },
                 y: { display: false }
@@ -33,38 +38,39 @@ async function fetchStatus() {
 
     data.forEach(node => {
         const now = new Date().toLocaleTimeString();
-        if (!chartHistory[node.name]) {
-            chartHistory[node.name] = {
+        const name = node.name;
+        if (!chartHistory[name]) {
+            chartHistory[name] = {
                 timestamps: [],
                 cpu: [],
-                mem: []
+                mem: [],
+                power: []
             };
         }
 
-        // Add new point
-        chartHistory[node.name].timestamps.push(now);
-        chartHistory[node.name].cpu.push(node.cpu);
-        chartHistory[node.name].mem.push(node.memory / (1024 * 1024));
+        chartHistory[name].timestamps.push(now);
+        chartHistory[name].cpu.push(node.cpu);
+        chartHistory[name].mem.push(node.memory / (1024 * 1024));
+        chartHistory[name].power.push(Math.random() * 50 + 50);  // Placeholder
 
-        // Keep last 20 points
-        if (chartHistory[node.name].cpu.length > 20) {
-            chartHistory[node.name].timestamps.shift();
-            chartHistory[node.name].cpu.shift();
-            chartHistory[node.name].mem.shift();
+        if (chartHistory[name].cpu.length > 20) {
+            ['timestamps', 'cpu', 'mem', 'power'].forEach(key => chartHistory[name][key].shift());
         }
 
-        const statusText = node.amt_status?.status || "unreachable";
-        const firmware = node.amt_status?.firmware || "—";
-        const lastBoot = node.amt_status?.last_boot || "—";
-        const powerState = node.amt_status?.power_state || "—";
+        const amt = node.amt_status || {};
+        const statusText = amt.status || "unreachable";
+        const firmware = amt.firmware || "—";
+        const lastBoot = amt.last_boot || "—";
+        const powerState = amt.power_state || "off";
         const amtClass = statusText === "reachable" ? "status-reachable" : "status-unreachable";
 
         const row = document.createElement('tr');
-        const cpuCanvasId = `${node.name}-cpu`;
-        const memCanvasId = `${node.name}-mem`;
+        const cpuCanvasId = `${name}-cpu`;
+        const memCanvasId = `${name}-mem`;
+        const pwrCanvasId = `${name}-pwr`;
 
         row.innerHTML = `
-            <td>${node.name}</td>
+            <td>${name}</td>
             <td class="${amtClass}">
                 ${statusText}<br>
                 <small>FW: ${firmware}</small><br>
@@ -76,28 +82,39 @@ async function fetchStatus() {
             </td>
             <td>
                 <canvas id="${memCanvasId}" width="100" height="40"></canvas>
+                <div style="font-size: 10px;"><canvas id="${pwrCanvasId}" width="100" height="20"></canvas></div>
             </td>
             <td>
-                <button onclick="powerAction('${node.name}', 'on')">On</button>
-                <button onclick="powerAction('${node.name}', 'off')">Off</button>
-                <button onclick="powerAction('${node.name}', 'reset')">Reset</button>
+                <button onclick="powerAction('${name}', 'on')">On</button>
+                <button onclick="powerAction('${name}', 'off')">Off</button>
+                <button onclick="powerAction('${name}', 'reset')">Reset</button>
+                <div id="${name}-state" style="font-size: 10px; color: gray; margin-top: 4px;"></div>
             </td>`;
         table.appendChild(row);
 
-setTimeout(() => {
-    createMiniChart(cpuCanvasId, chartHistory[node.name].timestamps, chartHistory[node.name].cpu, 'orange');
-    createMiniChart(memCanvasId, chartHistory[node.name].timestamps, chartHistory[node.name].mem, 'steelblue');
-}, 100);
+        const chartColor = powerState === "on" ? 'orange' : 'gray';
+        const memColor = powerState === "on" ? 'steelblue' : 'lightgray';
+        const pwrColor = powerState === "on" ? 'green' : 'red';
+
+        setTimeout(() => {
+            createMiniChart(cpuCanvasId, chartHistory[name].timestamps, chartHistory[name].cpu, chartColor);
+            createMiniChart(memCanvasId, chartHistory[name].timestamps, chartHistory[name].mem, memColor);
+            createMiniChart(pwrCanvasId, chartHistory[name].timestamps, chartHistory[name].power, pwrColor);
+        }, 100);
     });
 }
 
 async function powerAction(node, action) {
+    const stateDiv = document.getElementById(`${node}-state`);
+    stateDiv.innerText = '⏳ Applying...';
     const res = await fetch(`/power/${node}/${action}`, { method: 'POST' });
     const result = await res.json();
     const log = document.getElementById('log');
     const time = new Date().toLocaleTimeString();
     log.innerHTML += `[${time}] ${node}: ${action} → ${JSON.stringify(result)}<br>`;
     log.scrollTop = log.scrollHeight;
+    stateDiv.innerText = '✅ Done';
+    setTimeout(() => { stateDiv.innerText = ''; }, 3000);
     fetchStatus();
 }
 
