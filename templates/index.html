@@ -1,107 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>OpenShift Power Controller</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background-color: #f2f2f2; }
-    .reachable { color: green; }
-    .unreachable { color: red; }
-    canvas { width: 100px !important; height: 30px !important; }
-    button { padding: 4px 8px; margin: 0 2px; }
-  </style>
+    <title>OpenShift Power Controller</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        canvas { width: 160px !important; height: 60px !important; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>OpenShift Power Controller</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Node</th>
-        <th>AMT Status</th>
-        <th>CPU (last hour)</th>
-        <th>Memory (GiB)</th>
-        <th>Power (W)</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="status-table"></tbody>
-  </table>
-
-  <script>
-    function renderSpark(canvasId, data, color) {
-      new Chart(document.getElementById(canvasId), {
-        type: 'line',
-        data: {
-          labels: data.map((_,i) => i),
-          datasets: [{ data, borderColor: color, fill: true, tension: 0.3, pointRadius: 0 }]
-        },
-        options: {
-          responsive: false,
-          plugins: { legend: { display: false } },
-          scales: { x: { display: false }, y: { display: false } }
-        }
-      });
-    }
-
-   async function fetchStatus() {
-  const res  = await fetch('/status');
-  const json = await res.json();
-
-  console.log("STATUS →", json);       // <— add this line to verify shape
-  const { amt, timeseries } = json;
-
-  const tbody = document.getElementById('status-table');
-  tbody.innerHTML = '';
-
-  for (const node of Object.keys(amt)) {
-    const reach = amt[node].reachable;
-    const cpuTs = timeseries.cpu[node]    || [];
-    const memTs = timeseries.memory[node] || [];
-    const pwrTs = timeseries.power[node]  || [];
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${node}</td>
-          <td class="${reach?'reachable':'unreachable'}">
-            ${reach ? 'Reachable' : 'Unreachable'}
-          </td>
-          <td>
-            ${cpu.length?cpu.at(-1).toFixed(2):'-'}<br>
-            <canvas id="cpu-${node}"></canvas>
-          </td>
-          <td>
-            ${mem.length?(mem.at(-1)/(1024**3)).toFixed(2):'-'}<br>
-            <canvas id="mem-${node}"></canvas>
-          </td>
-          <td>
-            ${pow.length?pow.at(-1).toFixed(2):'-'}<br>
-            <canvas id="pow-${node}"></canvas>
-          </td>
-          <td>
-            <button onclick="sendCmd('${node}','on')">On</button>
-            <button onclick="sendCmd('${node}','off')">Off</button>
-            <button onclick="sendCmd('${node}','reset')">Reset</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-
-        renderSpark(`cpu-${node}`, cpu,   '#3b82f6');
-        renderSpark(`mem-${node}`, mem.map(v=>v/(1024**3)), '#10b981');
-        renderSpark(`pow-${node}`, pow,   '#f59e0b');
-      }
-    }
-
-    async function sendCmd(node, action) {
-      await fetch(`/power/${node}/${action}`, { method: 'POST' });
-      setTimeout(fetchStatus, 500);
-    }
-
-    fetchStatus();
-    setInterval(fetchStatus, 30000);
-  </script>
+    <h1>OpenShift Power Controller</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Node</th>
+                <th>CPU Usage</th>
+                <th>Memory Usage</th>
+                <th>Power</th>
+                <th>Graph</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for node in data %}
+            <tr>
+                <td>{{ node.name }}</td>
+                <td>{{ node.cpu or "?" }} cores</td>
+                <td>{{ (node.mem / 1073741824) | round(2) if node.mem else "?" }} GiB</td>
+                <td>
+                    <button onclick="sendPower('{{ node.name }}', 'off')">Off</button>
+                    <button onclick="sendPower('{{ node.name }}', 'on')">On</button>
+                    <button onclick="sendPower('{{ node.name }}', 'reset')">Reset</button>
+                </td>
+                <td>
+                    <canvas id="chart-{{ loop.index }}"></canvas>
+                    <script>
+                        const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+                        new Chart(ctx{{ loop.index }}, {
+                            type: 'line',
+                            data: {
+                                labels: ['Used', 'Total'],
+                                datasets: [
+                                    {
+                                        label: 'CPU',
+                                        data: [{{ node.cpu or 0 }}, {{ node.cpu_total }}],
+                                        borderColor: 'orange',
+                                        fill: true
+                                    },
+                                    {
+                                        label: 'Memory',
+                                        data: [{{ (node.mem / 1073741824) | round(2) if node.mem else 0 }}, {{ (node.mem_total / 1073741824) | round(2) }}],
+                                        borderColor: 'blue',
+                                        fill: true
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { display: false },
+                                    y: { display: false }
+                                }
+                            }
+                        });
+                    </script>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </body>
+<script>
+function sendPower(node, action) {
+    fetch(`/power/${node}/${action}`, { method: "POST" }).then(r => r.json()).then(console.log);
+}
+</script>
 </html>
