@@ -1,2 +1,3 @@
 Flask
 kubernetes
+requests==2.31.0
