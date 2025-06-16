@@ -1,69 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>OpenShift Power Controller</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background-color: #f2f2f2; }
-    .reachable { color: green; }
-    .unreachable { color: red; }
-    button { padding: 5px 10px; }
-  </style>
+    <title>OpenShift Power Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="/static/app.js"></script>
 </head>
 <body>
-  <h1>OpenShift Power Controller</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Node</th>
-        <th>AMT Status</th>
-        <th>CPU Load</th>
-        <th>Memory Usage</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="status-table"></tbody>
-  </table>
-
-  <script>
-    async function fetchStatus() {
-      const response = await fetch('/status');
-      const data = await response.json();
-      const tbody = document.getElementById('status-table');
-      tbody.innerHTML = '';
-
-      for (const [node, amtData] of Object.entries(data.amt)) {
-        const load = data.cluster_load[node] || {};
-        const tr = document.createElement('tr');
-
-        tr.innerHTML = `
-          <td>${node}</td>
-          <td class="${amtData.reachable ? 'reachable' : 'unreachable'}">
-            ${amtData.reachable ? 'Reachable' : 'Unreachable'}
-          </td>
-          <td>${load.cpu || '-'}</td>
-          <td>${load.memory || '-'}</td>
-          <td>
-            <button onclick="sendCommand('${node}', 'on')">Power On</button>
-            <button onclick="sendCommand('${node}', 'off')">Power Off</button>
-            <button onclick="sendCommand('${node}', 'reset')">Reset</button>
-          </td>
-        `;
-
-        tbody.appendChild(tr);
-      }
-    }
-
-    async function sendCommand(node, action) {
-      await fetch(`/power/${node}/${action}`, { method: 'POST' });
-      setTimeout(fetchStatus, 1000);
-    }
-
-    fetchStatus();
-    setInterval(fetchStatus, 10000);
-  </script>
+    <h1>OpenShift Power Controller</h1>
+    <div id="logs"></div>
+    <div id="nodes"></div>
 </body>
 </html>
