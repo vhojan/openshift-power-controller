@@ -12,7 +12,8 @@ NODES = {
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    from ui_controller import gather_node_data
+    return render_template("index.html", data=gather_node_data())
 
 @app.route("/status")
 def status():
