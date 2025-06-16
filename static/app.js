@@ -8,15 +8,20 @@ async function fetchStatus() {
         const row = document.createElement('tr');
         const amtClass = node.amt_status === 'reachable' ? 'status-reachable' : 'status-unreachable';
         row.innerHTML = `
-            <td>${node.name}</td>
-            <td class="${amtClass}">${node.amt_status}</td>
-            <td>${node.cpu.toFixed(2)}</td>
-            <td>${(node.memory / (1024 * 1024)).toFixed(2)} MB</td>
-            <td>
-                <button onclick="powerAction('${node.name}', 'on')">On</button>
-                <button onclick="powerAction('${node.name}', 'off')">Off</button>
-                <button onclick="powerAction('${node.name}', 'reset')">Reset</button>
-            </td>`;
+    <td>${node.name}</td>
+    <td class="${amtClass}">
+        ${node.amt_status}<br>
+        <small>FW: ${node.firmware || '—'}</small><br>
+        <small>Boot: ${node.last_boot || '—'}</small><br>
+        <small>State: ${node.power_state || '—'}</small>
+    </td>
+    <td>${node.cpu.toFixed(2)}</td>
+    <td>${(node.memory / (1024 * 1024)).toFixed(2)} MB</td>
+    <td>
+        <button onclick="powerAction('${node.name}', 'on')">On</button>
+        <button onclick="powerAction('${node.name}', 'off')">Off</button>
+        <button onclick="powerAction('${node.name}', 'reset')">Reset</button>
+    </td>`;
         table.appendChild(row);
     });
 }
