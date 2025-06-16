@@ -1,67 +1,41 @@
+from flask import Flask, render_template, request, redirect
+from datetime import datetime
 
-async function fetchStatus() {
-    const response = await fetch('/status');
-    const data = await response.json();
+app = Flask(__name__)
 
-    const tableBody = document.getElementById("node-table-body");
-    tableBody.innerHTML = "";
+# Simulated node list
+NODES = ['osmt-node1', 'osmt-node2', 'osmt-node3']
 
-    Object.keys(data.amt).forEach((node, index) => {
-        const cpuUsed = parseFloat(data.cluster_load[node].cpu);
-        const cpuTotal = 11500; // Max capacity in millicores
-        const memUsed = parseFloat(data.cluster_load[node].memory);
-        const memTotal = 64 * 1024 * 1024 * 1024; // Max capacity in bytes
+# In-memory event log
+event_log = []
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${node}</td>
-            <td><canvas id="cpuChart-${index}"></canvas></td>
-            <td><canvas id="memChart-${index}"></canvas></td>
-            <td>
-                <button onclick="sendPower('${node}', 'on')">Power On</button>
-                <button onclick="sendPower('${node}', 'off')">Power Off</button>
-                <button onclick="sendPower('${node}', 'reset')">Reset</button>
-            </td>
-        `;
-        tableBody.appendChild(row);
-
-        renderLineChart(`cpuChart-${index}`, "CPU (millicores)", [cpuUsed, cpuTotal], ["Used", "Total"]);
-        renderLineChart(`memChart-${index}`, "Memory (GB)", [memUsed / 1024 / 1024 / 1024, memTotal / 1024 / 1024 / 1024], ["Used", "Total"]);
-    });
-}
-
-function renderLineChart(canvasId, label, data, labels) {
-    const ctx = document.getElementById(canvasId).getContext("2d");
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: label,
-                data: data,
-                fill: false,
-                borderColor: 'blue',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
+@app.route('/')
+def index():
+    # Dummy data, replace with actual Prometheus or AMT values
+    usage_data = {
+        node: {
+            'cpu': round(1.0 + i * 0.5, 2),
+            'memory': round(16 + i * 10, 2)
         }
-    });
-}
+        for i, node in enumerate(NODES)
+    }
+    return render_template('index.html', usage=usage_data, nodes=NODES, events=event_log)
 
-async function sendPower(node, action) {
-    const response = await fetch(`/power/${node}/${action}`, { method: "POST" });
-    const result = await response.json();
-    const log = document.getElementById("log");
-    log.innerText = `${new Date().toLocaleString()} - ${node} ${action}: ${JSON.stringify(result)}\n` + log.innerText;
-}
+@app.route('/power', methods=['POST'])
+def power():
+    node = request.form.get('node')
+    action = request.form.get('action')
 
-fetchStatus();
-setInterval(fetchStatus, 10000);
+    # Simulated result
+    result = f"{action.upper()} sent to {node}"
+
+    # Append to event log
+    event_log.append({
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'node': node,
+        'action': action,
+        'result': result
+    })
+
+    print(result)
+    return redirect('/')
