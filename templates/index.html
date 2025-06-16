@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>OpenShift Power Controller</title>
+  <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background-color: #f2f2f2; }
+    body { font-family: Arial; padding: 2em; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+    th { background: #f2f2f2; }
+    canvas { width: 100px !important; height: 30px !important; }
     .reachable { color: green; }
     .unreachable { color: red; }
-    button { padding: 5px 10px; }
   </style>
 </head>
 <body>
@@ -22,6 +23,7 @@
         <th>AMT Status</th>
         <th>CPU Load</th>
         <th>Memory Usage</th>
+        <th>Power</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -29,31 +31,62 @@
   </table>
 
   <script>
+    function renderChart(canvasId, data, color = '#3b82f6') {
+      new Chart(document.getElementById(canvasId), {
+        type: 'line',
+        data: {
+          labels: data.map((_, i) => i),
+          datasets: [{ data, borderColor: color, tension: 0.3, pointRadius: 0 }]
+        },
+        options: {
+          responsive: false,
+          plugins: { legend: { display: false }},
+          scales: { x: { display: false }, y: { display: false }}
+        }
+      });
+    }
+
     async function fetchStatus() {
-      const response = await fetch('/status');
-      const data = await response.json();
+      const res = await fetch('/status');
+      const data = await res.json();
       const tbody = document.getElementById('status-table');
       tbody.innerHTML = '';
 
-      for (const [node, amtData] of Object.entries(data.amt)) {
-        const load = data.cluster_load[node] || {};
-        const tr = document.createElement('tr');
+      for (const node of Object.keys(data.amt)) {
+        const status = data.amt[node];
+        const cpu = data.timeseries.cpu[node] || [];
+        const mem = data.timeseries.memory[node] || [];
+        const power = data.timeseries.power[node] || [];
 
-        tr.innerHTML = `
+        const row = document.createElement('tr');
+        row.innerHTML = `
           <td>${node}</td>
-          <td class="${amtData.reachable ? 'reachable' : 'unreachable'}">
-            ${amtData.reachable ? 'Reachable' : 'Unreachable'}
+          <td class="${status.reachable ? 'reachable' : 'unreachable'}">
+            ${status.reachable ? 'Reachable' : 'Unreachable'}
           </td>
-          <td>${load.cpu || '-'}</td>
-          <td>${load.memory || '-'}</td>
+          <td>
+            ${cpu.at(-1)?.toFixed(2) || '-'}<br>
+            <canvas id="cpu-${node}"></canvas>
+          </td>
+          <td>
+            ${(mem.at(-1) / (1024**3)).toFixed(2) || '-'} GiB<br>
+            <canvas id="mem-${node}"></canvas>
+          </td>
+          <td>
+            ${power.at(-1)?.toFixed(2) || '-'} W<br>
+            <canvas id="power-${node}"></canvas>
+          </td>
           <td>
             <button onclick="sendCommand('${node}', 'on')">Power On</button>
             <button onclick="sendCommand('${node}', 'off')">Power Off</button>
             <button onclick="sendCommand('${node}', 'reset')">Reset</button>
           </td>
         `;
+        tbody.appendChild(row);
 
-        tbody.appendChild(tr);
+        renderChart(`cpu-${node}`, cpu);
+        renderChart(`mem-${node}`, mem.map(v => v / (1024**3)), '#10b981');  // green
+        renderChart(`power-${node}`, power, '#f59e0b'); // amber
       }
     }
 
@@ -63,7 +96,7 @@
     }
 
     fetchStatus();
-    setInterval(fetchStatus, 10000);
+    setInterval(fetchStatus, 30000);
   </script>
 </body>
 </html>
