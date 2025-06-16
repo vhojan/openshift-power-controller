@@ -36,10 +36,25 @@ def get_node_timeseries():
     mem_q   = 'sum(container_memory_usage_bytes{job="kubelet",image!=""}) by (node)'
     power_q = 'sum(node_power_usage_watts) by (node)'  # adjust to your metric
 
+    def parse(rs):
+      out = {}
+      for item in rs:
+        node = item["metric"].get("node")
+        if not node: 
+          continue
+        # convert each sample to float
+        out[node] = [float(v[1]) for v in item["values"]]
+      return out
+
     cpu_data   = query_range(cpu_q)
     mem_data   = query_range(mem_q)
     power_data = query_range(power_q)
 
+    return {
+      "cpu":    parse(cpu_data),
+      "memory": parse(mem_data),
+      "power":  parse(power_data),
+    }
     return {
         "cpu":   _parse_ts(cpu_data),
         "memory": _parse_ts(mem_data),
