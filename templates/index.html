@@ -5,6 +5,7 @@
 </head>
 <body>
     <h1>OpenShift Power Controller</h1>
+
     <table border="1">
         <tr>
             <th>Node</th>
@@ -12,11 +13,11 @@
             <th>Memory Usage</th>
             <th>Power</th>
         </tr>
-        {% for node in nodes %}
+        {% for node, data in usage.items() %}
         <tr>
             <td>{{ node }}</td>
-            <td>{{ usage[node].cpu }} cores</td>
-            <td>{{ usage[node].memory }} GiB</td>
+            <td>{{ data.cpu }} cores</td>
+            <td>{{ data.memory }} GiB</td>
             <td>
                 <form method="POST" action="/power" style="display:inline;">
                     <input type="hidden" name="node" value="{{ node }}">
