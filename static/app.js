@@ -95,9 +95,9 @@ async function fetchStatus() {
             </td>
             <td colspan="3" style="padding: 0;">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                    <div style="text-align:center;"><b>CPU</b><br><canvas id="${cpuCanvasId}" width="300" height="40"></canvas></div>
-                    <div style="text-align:center;"><b>Memory</b><br><canvas id="${memCanvasId}" width="300" height="40"></canvas></div>
-                    <div style="text-align:center;"><b>Power</b><br><canvas id="${pwrCanvasId}" width="300" height="40"></canvas></div>
+                    <div><canvas id="${cpuCanvasId}" width="300" height="40"></canvas></div>
+                    <div><canvas id="${memCanvasId}" width="300" height="40"></canvas></div>
+                    <div><canvas id="${pwrCanvasId}" width="300" height="40"></canvas></div>
                 </div>
             </td>
             <td>
