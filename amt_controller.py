@@ -1,6 +1,13 @@
 def check_amt(ip):
     # Replace this with actual logic if needed
-    return {"ip": ip, "reachable": True}
+   def check_amt(ip):
+    return {
+        "ip": ip,
+        "reachable": True,
+        "power_state": "on",
+        "firmware": "11.8.50.3399",
+        "last_boot": "2025-06-16 12:42:01"
+    }
 
 def power_control(ip, action):
     # Replace this with actual logic if needed
@@ -9,9 +16,17 @@ def power_control(ip, action):
 def get_amt_status(amt_ip):
     try:
         result = check_amt(amt_ip)
-        return "reachable" if result.get("reachable") else "unreachable"
+        return {
+            "status": "reachable" if result.get("reachable") else "unreachable",
+            "power_state": result.get("power_state"),
+            "firmware": result.get("firmware"),
+            "last_boot": result.get("last_boot"),
+        }
     except Exception as e:
-        return "unreachable"
+        return {
+            "status": "unreachable",
+            "error": str(e)
+        }
 
 def power_action(amt_ip, action):
     if action not in ["on", "off", "reset"]:
