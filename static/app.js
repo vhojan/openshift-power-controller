@@ -1,73 +1,81 @@
+
 async function fetchStatus() {
-    const res = await fetch('/status');
+    const res = await fetch("/status");
     const data = await res.json();
-    const container = document.getElementById('nodes');
-    container.innerHTML = '';
+    return data;
+}
 
-    for (const node in data.cluster_load) {
-        const cpu = parseFloat(data.cluster_load[node].cpu);
-        const mem = parseInt(data.cluster_load[node].memory);
-        const cpuMax = 16000;
-        const memMax = 64 * 1024 * 1024 * 1024;
+function updateLog(message) {
+    const logDiv = document.getElementById("log");
+    logDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}\n` + logDiv.textContent;
+}
 
-        const div = document.createElement('div');
-        div.innerHTML = `
-            <h2>${node}</h2>
-            <canvas id="cpu-${node}"></canvas>
-            <canvas id="mem-${node}"></canvas>
-            <button onclick="sendAction('${node}', 'on')">Power On</button>
-            <button onclick="sendAction('${node}', 'off')">Power Off</button>
-            <button onclick="sendAction('${node}', 'reset')">Reset</button>
-            <div id="log-${node}"></div>
+function createChart(canvasId, label, used, total) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Used', 'Available'],
+            datasets: [{
+                label: label,
+                data: [used, total - used],
+                fill: false,
+                borderColor: label === 'CPU' ? 'blue' : 'green',
+                tension: 0.1
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false }},
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+async function sendPowerCommand(node, action) {
+    updateLog(`Sending ${action} to ${node}...`);
+    const res = await fetch(`/power/${node}/${action}`, { method: "POST" });
+    const result = await res.json();
+    updateLog(`Response from ${node}: ${JSON.stringify(result)}`);
+}
+
+function renderTable(data) {
+    const tableBody = document.getElementById("tableBody");
+    tableBody.innerHTML = "";
+
+    Object.keys(data.cluster_load).forEach((node, index) => {
+        const cpuUsed = parseFloat(data.cluster_load[node].cpu);
+        const memUsed = parseInt(data.cluster_load[node].memory);
+        const memTotal = 68719476736;  // Assume 64GB per node
+
+        const tr = document.createElement("tr");
+
+        const amtStatus = data.amt[node]?.reachable ? "✅" : "❌";
+
+        tr.innerHTML = `
+            <td>${node}</td>
+            <td>${amtStatus}</td>
+            <td><canvas id="cpuChart${index}"></canvas></td>
+            <td><canvas id="memChart${index}"></canvas></td>
+            <td>
+                <button onclick="sendPowerCommand('${node}', 'on')">Power On</button>
+                <button onclick="sendPowerCommand('${node}', 'off')">Power Off</button>
+                <button onclick="sendPowerCommand('${node}', 'reset')">Reset</button>
+            </td>
         `;
-        container.appendChild(div);
 
-        new Chart(document.getElementById(`cpu-${node}`), {
-            type: 'bar',
-            data: {
-                labels: ['CPU (millicores)'],
-                datasets: [{
-                    label: 'Used',
-                    data: [cpu],
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)'
-                }, {
-                    label: 'Free',
-                    data: [cpuMax - cpu],
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: true, max: cpuMax } } }
-        });
+        tableBody.appendChild(tr);
 
-        new Chart(document.getElementById(`mem-${node}`), {
-            type: 'bar',
-            data: {
-                labels: ['Memory (bytes)'],
-                datasets: [{
-                    label: 'Used',
-                    data: [mem],
-                    backgroundColor: 'rgba(255, 205, 86, 0.6)'
-                }, {
-                    label: 'Free',
-                    data: [memMax - mem],
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)'
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: true, max: memMax } } }
-        });
-    }
+        createChart(`cpuChart${index}`, "CPU", cpuUsed, 6);  // 6 cores
+        createChart(`memChart${index}`, "Memory", memUsed, memTotal);
+    });
 }
 
-async function sendAction(node, action) {
-    const logDiv = document.getElementById(`log-${node}`);
-    try {
-        const res = await fetch(`/power/${node}/${action}`, { method: 'POST' });
-        const result = await res.json();
-        logDiv.innerText = `${new Date().toLocaleTimeString()} - ${action.toUpperCase()}: ${JSON.stringify(result)}`;
-    } catch (e) {
-        logDiv.innerText = `${new Date().toLocaleTimeString()} - ERROR: ${e.message}`;
-    }
+async function init() {
+    const data = await fetchStatus();
+    renderTable(data);
 }
 
-fetchStatus();
-setInterval(fetchStatus, 10000);
+init();
+setInterval(init, 10000); // auto-refresh every 10 seconds
