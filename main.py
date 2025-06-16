@@ -1,6 +1,6 @@
 
 from flask import Flask, render_template, jsonify, request
-from amt_controller import get_amt_status, power_action
+from amt_controller import get_amt_status, power_control as power_action
 from cluster_status import get_cluster_metrics
 import logging
 
