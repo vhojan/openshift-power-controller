@@ -11,8 +11,8 @@ def get_cluster_metrics(node_name):
             token = f.read().strip()
 
         headers = {"Authorization": f"Bearer {token}"}
-        cpu_query = f'sum(rate(container_cpu_usage_seconds_total{{instance="{node_name}"}}[1m]))'
-        mem_query = f'sum(container_memory_working_set_bytes{{instance="{node_name}"}})'
+        cpu_query = f'instance:node_cpu:rate:sum{{instance="{node_name}"}}'
+        mem_query = f'node_memory_Active_bytes{{instance="{node_name}"}}'
 
         cpu_resp = requests.get(f"{PROMETHEUS_URL}/api/v1/query", headers=headers, params={"query": cpu_query}, verify=False).json()
         mem_resp = requests.get(f"{PROMETHEUS_URL}/api/v1/query", headers=headers, params={"query": mem_query}, verify=False).json()
