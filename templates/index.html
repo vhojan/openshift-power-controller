@@ -1,51 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>OpenShift Power Controller</title>
+  <meta charset="UTF-8">
+  <title>OpenShift Power Controller</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    .reachable { color: green; }
+    .unreachable { color: red; }
+    button { padding: 5px 10px; }
+  </style>
 </head>
 <body>
-    <h1>OpenShift Power Controller</h1>
+  <h1>OpenShift Power Controller</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>AMT Status</th>
+        <th>CPU Load</th>
+        <th>Memory Usage</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="status-table"></tbody>
+  </table>
 
-    <table border="1">
-        <tr>
-            <th>Node</th>
-            <th>CPU Usage</th>
-            <th>Memory Usage</th>
-            <th>Power</th>
-        </tr>
-        {% for node, data in usage.items() %}
-        <tr>
-            <td>{{ node }}</td>
-           <td>{{ data['cpu'] }} cores</td>
-            <td>{{ data['memory'] }} GiB</td>
-            <td>
-                <form method="POST" action="/power" style="display:inline;">
-                    <input type="hidden" name="node" value="{{ node }}">
-                    <button type="submit" name="action" value="off">Off</button>
-                    <button type="submit" name="action" value="on">On</button>
-                    <button type="submit" name="action" value="reset">Reset</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+  <script>
+    async function fetchStatus() {
+      const response = await fetch('/status');
+      const data = await response.json();
+      const tbody = document.getElementById('status-table');
+      tbody.innerHTML = '';
 
-    <h2>Event Log</h2>
-    <table border="1">
-        <tr>
-            <th>Timestamp</th>
-            <th>Node</th>
-            <th>Action</th>
-            <th>Result</th>
-        </tr>
-        {% for event in events %}
-        <tr>
-            <td>{{ event.timestamp }}</td>
-            <td>{{ event.node }}</td>
-            <td>{{ event.action }}</td>
-            <td>{{ event.result }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+      for (const [node, amtData] of Object.entries(data.amt)) {
+        const load = data.cluster_load[node] || {};
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td>${node}</td>
+          <td class="${amtData.reachable ? 'reachable' : 'unreachable'}">
+            ${amtData.reachable ? 'Reachable' : 'Unreachable'}
+          </td>
+          <td>${load.cpu || '-'}</td>
+          <td>${load.memory || '-'}</td>
+          <td>
+            <button onclick="sendCommand('${node}', 'on')">Power On</button>
+            <button onclick="sendCommand('${node}', 'off')">Power Off</button>
+            <button onclick="sendCommand('${node}', 'reset')">Reset</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function sendCommand(node, action) {
+      await fetch(`/power/${node}/${action}`, { method: 'POST' });
+      setTimeout(fetchStatus, 1000);
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 10000);
+  </script>
 </body>
 </html>
