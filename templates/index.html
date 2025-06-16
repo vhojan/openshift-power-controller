@@ -16,8 +16,8 @@
         {% for node, data in usage.items() %}
         <tr>
             <td>{{ node }}</td>
-            <td>{{ data.cpu }} cores</td>
-            <td>{{ data.memory }} GiB</td>
+           <td>{{ data['cpu'] }} cores</td>
+            <td>{{ data['memory'] }} GiB</td>
             <td>
                 <form method="POST" action="/power" style="display:inline;">
                     <input type="hidden" name="node" value="{{ node }}">
