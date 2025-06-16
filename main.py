@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, render_template
-from cluster_status import get_node_timeseries
+from cluster_status import get_cluster_load, get_node_timeseries
 from amt_controller import check_amt, power_control
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -18,18 +18,20 @@ def index():
 
 @app.route("/status")
 def status():
-    # 1) Fetch last-hour timeseries for cpu, mem, power
-    timeseries = get_node_timeseries()
+    # 1) instant snapshot (if you still need it)
+    cluster = get_cluster_load()
 
-    # 2) Check AMT reachability for each node
-    amt = {
-        node: {"reachable": check_amt(info["ip"])}
-        for node, info in NODES.items()
-    }
+    # 2) full-hour timeseries for graphs
+    ts = get_node_timeseries()
+
+    # 3) AMT reachability
+    amt = { node: {"reachable": check_amt(info["ip"])} 
+            for node, info in NODES.items() }
 
     return jsonify({
-        "amt": amt,
-        "timeseries": timeseries
+      "amt":       amt,
+      "cluster":   cluster,
+      "timeseries": ts
     })
 
 @app.route("/power/<node>/<action>", methods=["POST"])
