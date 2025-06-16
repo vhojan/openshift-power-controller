@@ -21,8 +21,13 @@ def index():
 def status():
     status_data = []
     for node in NODES:
-        amt = get_amt_status(node["amt_ip"])
-        usage = get_cluster_metrics(node["name"])
+        try:
+            amt = get_amt_status(node["amt_ip"])
+            usage = get_cluster_metrics(node["name"])
+        except Exception as e:
+            print(f"Error fetching status for {node['name']}: {e}")
+            amt = "error"
+            usage = {"cpu": 0, "memory": 0}
         status_data.append({
             "name": node["name"],
             "amt_status": amt,
