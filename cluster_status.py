@@ -32,3 +32,17 @@ def get_cluster_load():
             result[node]["memory"] = item["value"][1]
 
     return result
+
+def get_cluster_status():
+    raw = get_cluster_load()
+    cleaned = {}
+
+    for node, metrics in raw.items():
+        try:
+            cpu = round(float(metrics["cpu"]), 2)
+            mem_gib = round(float(metrics["memory"]) / (1024 ** 3), 2)
+            cleaned[node] = {"cpu": cpu, "memory": mem_gib}
+        except (KeyError, ValueError):
+            continue
+
+    return cleaned
