@@ -10,9 +10,22 @@ NODES = {
     "osmt-node3": {"ip": "192.168.5.13"},
 }
 
+def gather_node_data():
+    cluster_load = get_cluster_load()
+    amt_status = {node: check_amt(data["ip"]) for node, data in NODES.items()}
+    combined = {}
+
+    for node, status in amt_status.items():
+        combined[node] = {
+            "ip": status["ip"],
+            "reachable": status["reachable"],
+            "cpu": cluster_load.get(node, {}).get("cpu", "0"),
+            "memory": cluster_load.get(node, {}).get("memory", "0"),
+        }
+    return combined
+
 @app.route("/")
 def index():
-    from ui_controller import gather_node_data
     return render_template("index.html", data=gather_node_data())
 
 @app.route("/status")
