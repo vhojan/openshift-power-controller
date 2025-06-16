@@ -84,8 +84,10 @@ async function fetchStatus() {
             </td>`;
         table.appendChild(row);
 
-        createMiniChart(cpuCanvasId, chartHistory[node.name].timestamps, chartHistory[node.name].cpu, 'orange');
-        createMiniChart(memCanvasId, chartHistory[node.name].timestamps, chartHistory[node.name].mem, 'steelblue');
+setTimeout(() => {
+    createMiniChart(cpuCanvasId, chartHistory[node.name].timestamps, chartHistory[node.name].cpu, 'orange');
+    createMiniChart(memCanvasId, chartHistory[node.name].timestamps, chartHistory[node.name].mem, 'steelblue');
+}, 100);
     });
 }
 
