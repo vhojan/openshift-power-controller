@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, render_template
 from amt_controller import power_control, check_amt
 from cluster_status import get_cluster_load
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
 
 NODES = {
     "osmt-node1": {"ip": "192.168.5.11"},
