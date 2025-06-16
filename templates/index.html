@@ -1,81 +1,79 @@
-<table>
-  <thead>
-    <tr>
-      <th>Node</th>
-      <th>CPU Usage</th>
-      <th>Memory Usage</th>
-      <th>Power</th>
-      <th>Graph</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for node, info in data.items() %}
-    <tr>
-      <td>{{ node }}</td>
-      <td>{{ info.cpu_used }} cores</td>
-      <td>{{ info.memory_used }} GiB</td>
-      <td>
-        <button onclick="sendPower('{{ node }}', 'off')">Off</button>
-        <button onclick="sendPower('{{ node }}', 'on')">On</button>
-        <button onclick="sendPower('{{ node }}', 'reset')">Reset</button>
-      </td>
-      <td>
-        <canvas id="chart-{{ node }}" width="200" height="60"></canvas>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<script>
-const nodeData = {{ data|tojson }};
-Object.keys(nodeData).forEach(node => {
-  const ctx = document.getElementById(`chart-${node}`);
-  const cpu = parseFloat(nodeData[node].cpu_used);
-  const cpuMax = parseFloat(nodeData[node].cpu_total);
-  const mem = parseFloat(nodeData[node].memory_used);
-  const memMax = parseFloat(nodeData[node].memory_total);
-
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Used', 'Total'],
-      datasets: [
-        {
-          label: 'CPU',
-          data: [cpu, cpuMax],
-          borderColor: '#FFA500',
-          backgroundColor: 'rgba(255,165,0,0.1)',
-          fill: true,
-          tension: 0.3,
-        },
-        {
-          label: 'Memory',
-          data: [mem, memMax],
-          borderColor: '#1E90FF',
-          backgroundColor: 'rgba(30,144,255,0.1)',
-          fill: true,
-          tension: 0.3,
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OpenShift Power Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 5px; border: 1px solid #ccc; text-align: center; }
+        canvas { display: block; margin: auto; }
+    </style>
+</head>
+<body>
+    <h1>OpenShift Power Controller</h1>
+    <table>
+        <tr>
+            <th>Node</th>
+            <th>CPU Usage</th>
+            <th>Memory Usage</th>
+            <th>Power</th>
+            <th>Graph</th>
+        </tr>
+        {% for node in node_data %}
+        <tr>
+            <td>{{ node }}</td>
+            <td>{{ node_data[node]["cpu_formatted"] }}</td>
+            <td>{{ node_data[node]["memory_formatted"] }}</td>
+            <td>
+                <button onclick="powerAction('{{ node }}', 'off')">Off</button>
+                <button onclick="powerAction('{{ node }}', 'on')">On</button>
+                <button onclick="powerAction('{{ node }}', 'reset')">Reset</button>
+            </td>
+            <td><canvas id="chart-{{ loop.index }}" width="150" height="40"></canvas></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <script>
+        function powerAction(node, action) {
+            fetch(`/power/${node}/${action}`, { method: "POST" })
+                .then(resp => resp.json())
+                .then(data => console.log(data));
         }
-      ]
-    },
-    options: {
-      responsive: false,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-      },
-      scales: {
-        y: {
-          display: false
-        },
-        x: {
-          display: false
-        }
-      }
-    }
-  });
-});
-</script>
+
+        {% for node, data in node_data.items() %}
+        const ctx{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+        new Chart(ctx{{ loop.index }}, {
+            type: 'line',
+            data: {
+                labels: ['Used', 'Total'],
+                datasets: [
+                    {
+                        label: 'CPU',
+                        data: [{{ data.cpu }}, 6.4],
+                        borderColor: 'orange',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Memory',
+                        data: [{{ data.memory | int / (1024**3) }}, 64],
+                        borderColor: 'blue',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { display: false } }
+            }
+        });
+        {% endfor %}
+    </script>
+</body>
+</html>
