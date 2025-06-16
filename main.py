@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, request, render_template
 from amt_controller import power_control, check_amt
 from cluster_status import get_cluster_load
+from ui_controller import gather_node_data
 
-app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
+app = Flask(__name__, template_folder="templates")
 
 NODES = {
     "osmt-node1": {"ip": "192.168.5.11"},
@@ -10,23 +11,10 @@ NODES = {
     "osmt-node3": {"ip": "192.168.5.13"},
 }
 
-def gather_node_data():
-    cluster_load = get_cluster_load()
-    amt_status = {node: check_amt(data["ip"]) for node, data in NODES.items()}
-    combined = {}
-
-    for node, status in amt_status.items():
-        combined[node] = {
-            "ip": status["ip"],
-            "reachable": status["reachable"],
-            "cpu": cluster_load.get(node, {}).get("cpu", "0"),
-            "memory": cluster_load.get(node, {}).get("memory", "0"),
-        }
-    return combined
-
 @app.route("/")
 def index():
-    return render_template("index.html", data=gather_node_data())
+    node_data = gather_node_data(NODES)
+    return render_template("index.html", node_data=node_data)
 
 @app.route("/status")
 def status():
