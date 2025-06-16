@@ -47,17 +47,21 @@
       });
     }
 
-    async function fetchStatus() {
-      const res = await fetch('/status');
-      const { amt, timeseries } = await res.json();
-      const tbody = document.getElementById('status-table');
-      tbody.innerHTML = '';
+   async function fetchStatus() {
+  const res  = await fetch('/status');
+  const json = await res.json();
 
-      for (const node of Object.keys(amt)) {
-        const reach = amt[node].reachable;
-        const cpu   = timeseries.cpu[node]    || [];
-        const mem   = timeseries.memory[node] || [];
-        const pow   = timeseries.power[node]  || [];
+  console.log("STATUS →", json);       // <— add this line to verify shape
+  const { amt, timeseries } = json;
+
+  const tbody = document.getElementById('status-table');
+  tbody.innerHTML = '';
+
+  for (const node of Object.keys(amt)) {
+    const reach = amt[node].reachable;
+    const cpuTs = timeseries.cpu[node]    || [];
+    const memTs = timeseries.memory[node] || [];
+    const pwrTs = timeseries.power[node]  || [];
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
